@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence, useSpring, useMotionValue } from "framer-motion"
 import { useRouter } from "next/navigation"
 import { useSound } from "@/hooks/use-sound"
+import Image from "next/image"
 
 interface MenuItem {
   id: string
@@ -160,15 +161,18 @@ export function InteractiveDotMenu() {
     setSelectedIndex(index)
   }
 
-  const getItemAnimation = (index: number) => {
+  const getItemAnimation = (index: number, totalItems: number) => {
     // Calculate final position (center of screen, horizontally spaced)
     const spacing = 120
-    const totalWidth = (MENU_ITEMS.length - 1) * spacing
+    const totalWidth = (totalItems - 1) * spacing
     const startX = -totalWidth / 2
     const finalX = startX + index * spacing
 
     // Starting position - from the dot button on the right side
     const startFromDotX = typeof window !== 'undefined' ? (window.innerWidth / 2) - 32 : 600
+
+    // Reverse delay for exit animation (shop goes first, then lifestyle, then work)
+    const exitDelay = (totalItems - 1 - index) * 0.35
 
     return {
       initial: {
@@ -176,7 +180,7 @@ export function InteractiveDotMenu() {
         y: 0,
         opacity: 0,
         scale: 0.2,
-        filter: "blur(10px)",
+        filter: "blur(12px)",
       },
       animate: {
         x: finalX,
@@ -184,6 +188,13 @@ export function InteractiveDotMenu() {
         opacity: 1,
         scale: 1,
         filter: "blur(0px)",
+      },
+      exit: {
+        x: startFromDotX,
+        y: 0,
+        opacity: 0,
+        scale: 0.2,
+        filter: "blur(14px)",
       },
       transition: {
         delay: index * 0.4,
@@ -194,8 +205,23 @@ export function InteractiveDotMenu() {
           duration: 0.8,
         },
         filter: {
-          delay: index * 0.4 + 0.4,
-          duration: 0.8,
+          delay: index * 0.4 + 0.3,
+          duration: 1.0,
+        }
+      },
+      exitTransition: {
+        delay: exitDelay,
+        duration: 1.6,
+        ease: [0.32, 0, 0.67, 0],
+        opacity: {
+          delay: exitDelay,
+          duration: 1.2,
+          ease: [0.32, 0, 0.67, 0]
+        },
+        filter: {
+          delay: exitDelay,
+          duration: 1.4,
+          ease: [0.32, 0, 0.67, 0]
         }
       }
     }
@@ -318,14 +344,45 @@ export function InteractiveDotMenu() {
         )}
       </AnimatePresence>
 
+      {/* Animated Logo */}
+      <motion.div
+        className="fixed top-[45%] -translate-y-1/2 z-50"
+        animate={{
+          left: isOpen ? '570px' : '32px',
+          opacity: isOpen ? 1 : 1
+        }}
+        transition={{
+          left: {
+            duration: isOpen ? 1.2 : 1.6,
+            ease: isOpen ? [0.22, 1, 0.36, 1] : [0.32, 0, 0.67, 0],
+            delay: isOpen ? 0 : 0.7
+          },
+          opacity: {
+            duration: 0.4,
+            ease: [0.32, 0, 0.67, 0]
+          }
+        }}
+      >
+        <Image
+          src="/igochi-logo.png"
+          alt="Igochi Logo"
+          width={21}
+          height={66}
+          className="object-contain"
+          style={{
+            filter: 'contrast(0.7) brightness(2)',
+          }}
+        />
+      </motion.div>
+
       {/* Menu items with liquid ink effect */}
       <AnimatePresence>
         {isOpen && (
-          <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50">
+          <div className="fixed left-1/2 top-[45%] -translate-x-1/2 -translate-y-1/2 z-50">
             {/* Container with liquid filter for the ink blobs only */}
             <div style={{ filter: "url(#liquid-effect)" }}>
               {MENU_ITEMS.map((item, index) => {
-                const animation = getItemAnimation(index)
+                const animation = getItemAnimation(index, MENU_ITEMS.length)
 
                 return (
                   <div key={`blob-${item.id}`}>
@@ -339,6 +396,16 @@ export function InteractiveDotMenu() {
                           ...animation.animate,
                           scale: [0.2, 0.4, 0],
                           opacity: [0.7, 0.4, 0],
+                        }}
+                        exit={{
+                          ...animation.exit,
+                          scale: [0.4, 0.2, 0],
+                          opacity: [0.4, 0.7, 0],
+                          transition: {
+                            ...animation.exitTransition,
+                            delay: animation.exitTransition.delay + blobIndex * 0.08,
+                            duration: 0.9,
+                          }
                         }}
                         transition={{
                           ...animation.transition,
@@ -355,18 +422,32 @@ export function InteractiveDotMenu() {
             {/* Text items without the liquid filter so they stay sharp */}
             {MENU_ITEMS.map((item, index) => {
               const isSelected = selectedIndex === index
-              const animation = getItemAnimation(index)
+              const animation = getItemAnimation(index, MENU_ITEMS.length)
 
               return (
                 <div key={item.id} className="relative">
                   <motion.button
                     initial={animation.initial}
-                    animate={animation.animate}
-                    exit={animation.initial}
-                    transition={animation.transition}
+                    animate={{
+                      ...animation.animate,
+                      scale: isSelected ? 1.08 : 1
+                    }}
+                    exit={{
+                      ...animation.exit,
+                      transition: animation.exitTransition
+                    }}
+                    transition={{
+                      ...animation.transition,
+                      scale: {
+                        type: "spring",
+                        stiffness: 400,
+                        damping: 30,
+                        mass: 0.8
+                      }
+                    }}
                     className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap cursor-pointer group ${
                       isSelected
-                        ? "text-white scale-110"
+                        ? "text-white"
                         : "text-white/60"
                     }`}
                     style={{
@@ -377,8 +458,25 @@ export function InteractiveDotMenu() {
                     }}
                     onClick={() => handleItemClick(item, index)}
                     onMouseEnter={() => handleItemHover(index)}
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.95 }}
+                    whileHover={{
+                      scale: 1.06,
+                      y: -2,
+                      transition: {
+                        type: "spring",
+                        stiffness: 500,
+                        damping: 35,
+                        mass: 0.5
+                      }
+                    }}
+                    whileTap={{
+                      scale: 0.98,
+                      transition: {
+                        type: "spring",
+                        stiffness: 500,
+                        damping: 25,
+                        mass: 0.5
+                      }
+                    }}
                     aria-label={`Navigate to ${item.label}`}
                     role="menuitem"
                   >
@@ -416,7 +514,24 @@ export function InteractiveDotMenu() {
                             initial={{ opacity: 0, x: -10 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: subIndex * 0.05 }}
-                            whileHover={{ x: 4 }}
+                            whileHover={{
+                              x: 3,
+                              backgroundColor: 'rgba(255,255,255,0.08)',
+                              transition: {
+                                type: "spring",
+                                stiffness: 400,
+                                damping: 30,
+                                mass: 0.5
+                              }
+                            }}
+                            whileTap={{
+                              scale: 0.98,
+                              transition: {
+                                type: "spring",
+                                stiffness: 500,
+                                damping: 25
+                              }
+                            }}
                             role="menuitem"
                           >
                             {subItem.label}
@@ -438,12 +553,28 @@ export function InteractiveDotMenu() {
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         onClick={handleToggle}
-        className="fixed right-8 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center cursor-pointer focus:outline-none focus:ring-2 focus:ring-white/20 rounded-full z-[60]"
+        className="fixed right-8 top-[45%] -translate-y-1/2 w-12 h-12 flex items-center justify-center cursor-pointer focus:outline-none focus:ring-2 focus:ring-white/20 rounded-full z-[60]"
         aria-label={isOpen ? "Close menu" : "Open menu"}
         aria-expanded={isOpen}
         role="button"
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.95 }}
+        whileHover={{
+          scale: 1.08,
+          transition: {
+            type: "spring",
+            stiffness: 400,
+            damping: 30,
+            mass: 0.6
+          }
+        }}
+        whileTap={{
+          scale: 0.96,
+          transition: {
+            type: "spring",
+            stiffness: 500,
+            damping: 25,
+            mass: 0.5
+          }
+        }}
       >
         {/* Glassmorphism background */}
         <motion.div
@@ -452,7 +583,12 @@ export function InteractiveDotMenu() {
             scale: isHovered || isOpen ? 1 : 0,
             opacity: isHovered || isOpen ? 1 : 0,
           }}
-          transition={{ duration: 0.2 }}
+          transition={{
+            type: "spring",
+            stiffness: 400,
+            damping: 32,
+            mass: 0.6
+          }}
         />
 
         {/* Dot */}
