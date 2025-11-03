@@ -25,20 +25,6 @@ export default function Home() {
       {/* Black Overlay - No Noise */}
       <div className="absolute inset-0 bg-black/50" />
 
-      {/* Logo */}
-      <div className="absolute" style={{ left: '570px', top: '475px' }}>
-        <Image
-          src="/igochi-logo.png"
-          alt="Igochi Logo"
-          width={21}
-          height={66}
-          className="object-contain"
-          style={{
-            filter: 'contrast(0.7) brightness(2)',
-          }}
-        />
-      </div>
-
       {/* Top Text - Igochi Studio */}
       <div className="absolute top-[100px] left-1/2 -translate-x-1/2">
         <p className="text-white text-base font-normal" style={{ fontFamily: 'SF Pro Text, -apple-system, sans-serif' }}>
