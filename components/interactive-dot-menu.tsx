@@ -4,13 +4,13 @@ import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence, useSpring, useMotionValue } from "framer-motion"
 import { useRouter } from "next/navigation"
 import { useSound } from "@/hooks/use-sound"
-import Image from "next/image"
+import { AnimatedLogo } from "@/components/animated-logo"
 
 interface MenuItem {
   id: string
   label: string
   href: string
-  subItems?: { id: string; label: string; href: string }[]
+  subItems?: { id: string; description: string }[]
 }
 
 const MENU_ITEMS: MenuItem[] = [
@@ -19,8 +19,8 @@ const MENU_ITEMS: MenuItem[] = [
     label: "work",
     href: "/work",
     subItems: [
-      { id: "projects", label: "projects", href: "/work/projects" },
-      { id: "case-studies", label: "case studies", href: "/work/case-studies" },
+      { id: "projects", description: "explore our portfolio of creative work and recent projects" },
+      { id: "case-studies", description: "deep dives into our process and problem-solving approach" },
     ]
   },
   {
@@ -28,8 +28,8 @@ const MENU_ITEMS: MenuItem[] = [
     label: "lifestyle",
     href: "/lifestyle",
     subItems: [
-      { id: "blog", label: "blog", href: "/lifestyle/blog" },
-      { id: "gallery", label: "gallery", href: "/lifestyle/gallery" },
+      { id: "blog", description: "thoughts, insights, and stories from our studio" },
+      { id: "gallery", description: "visual inspiration and behind-the-scenes moments" },
     ]
   },
   {
@@ -37,8 +37,8 @@ const MENU_ITEMS: MenuItem[] = [
     label: "shop",
     href: "/shop",
     subItems: [
-      { id: "products", label: "products", href: "/shop/products" },
-      { id: "cart", label: "cart", href: "/shop/cart" },
+      { id: "products", description: "curated collection of our designs and merchandise" },
+      { id: "cart", description: "review your selections and complete your order" },
     ]
   },
 ]
@@ -49,7 +49,11 @@ interface Ripple {
   y: number
 }
 
-export function InteractiveDotMenu() {
+interface InteractiveDotMenuProps {
+  introComplete?: boolean
+}
+
+export function InteractiveDotMenu({ introComplete = false }: InteractiveDotMenuProps) {
   const router = useRouter()
   const { playClick, playOpen, playClose, playHover } = useSound()
   const [isOpen, setIsOpen] = useState(false)
@@ -159,6 +163,16 @@ export function InteractiveDotMenu() {
       playHover()
     }
     setSelectedIndex(index)
+    // Show submenu on hover if the item has subItems
+    if (MENU_ITEMS[index].subItems && MENU_ITEMS[index].subItems!.length > 0) {
+      setShowSubmenu(true)
+    } else {
+      setShowSubmenu(false)
+    }
+  }
+
+  const handleItemLeave = () => {
+    setShowSubmenu(false)
   }
 
   const getItemAnimation = (index: number, totalItems: number) => {
@@ -228,15 +242,26 @@ export function InteractiveDotMenu() {
   }
 
   const submenuVariants = {
-    closed: { opacity: 0, y: -10, scale: 0.95 },
+    closed: {
+      opacity: 0,
+      y: -8,
+      filter: "blur(8px)",
+      transition: {
+        duration: 0.25,
+        ease: [0.32, 0, 0.67, 0]
+      }
+    },
     open: {
       opacity: 1,
       y: 0,
-      scale: 1,
+      filter: "blur(0px)",
       transition: {
-        type: "spring",
-        damping: 25,
-        stiffness: 400,
+        duration: 0.5,
+        ease: [0.22, 1, 0.36, 1],
+        filter: {
+          duration: 0.6,
+          ease: [0.22, 1, 0.36, 1]
+        }
       },
     },
   }
@@ -252,9 +277,8 @@ export function InteractiveDotMenu() {
       scale: 0,
       rotate: 180,
       transition: {
-        type: "spring",
-        damping: 20,
-        stiffness: 300,
+        duration: 0.4,
+        ease: [0.32, 0, 0.67, 0],
       },
     },
   }
@@ -270,9 +294,8 @@ export function InteractiveDotMenu() {
       scale: 1,
       rotate: 0,
       transition: {
-        type: "spring",
-        damping: 20,
-        stiffness: 300,
+        duration: 0.4,
+        ease: [0.22, 1, 0.36, 1],
         delay: 0.05,
       },
     },
@@ -346,32 +369,34 @@ export function InteractiveDotMenu() {
 
       {/* Animated Logo */}
       <motion.div
-        className="fixed top-[45%] -translate-y-1/2 z-50"
+        className="fixed -translate-y-1/2 w-[21px] h-[66px]"
+        style={{ zIndex: introComplete ? 50 : 101 }}
+        initial={{
+          left: '50%',
+          top: '45%',
+          x: '-50%'
+        }}
         animate={{
           left: isOpen ? '570px' : '32px',
-          opacity: isOpen ? 1 : 1
+          top: '45%',
+          x: 0
         }}
         transition={{
           left: {
-            duration: isOpen ? 1.2 : 1.6,
-            ease: isOpen ? [0.22, 1, 0.36, 1] : [0.32, 0, 0.67, 0],
-            delay: isOpen ? 0 : 0.7
+            duration: isOpen && introComplete ? 1.2 : 1.6,
+            ease: isOpen && introComplete ? [0.22, 1, 0.36, 1] : [0.32, 0, 0.67, 0],
+            delay: (isOpen && introComplete) ? 0 : (introComplete ? 0 : 1.7)
           },
-          opacity: {
-            duration: 0.4,
-            ease: [0.32, 0, 0.67, 0]
+          x: {
+            duration: 1.6,
+            ease: [0.32, 0, 0.67, 0],
+            delay: introComplete ? 0 : 1.7
           }
         }}
       >
-        <Image
-          src="/igochi-logo.png"
-          alt="Igochi Logo"
-          width={21}
-          height={66}
-          className="object-contain"
-          style={{
-            filter: 'contrast(0.7) brightness(2)',
-          }}
+        <AnimatedLogo
+          className="w-full h-full"
+          introComplete={introComplete}
         />
       </motion.div>
 
@@ -439,10 +464,8 @@ export function InteractiveDotMenu() {
                     transition={{
                       ...animation.transition,
                       scale: {
-                        type: "spring",
-                        stiffness: 400,
-                        damping: 30,
-                        mass: 0.8
+                        duration: 0.4,
+                        ease: [0.22, 1, 0.36, 1]
                       }
                     }}
                     className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 whitespace-nowrap cursor-pointer group ${
@@ -458,23 +481,20 @@ export function InteractiveDotMenu() {
                     }}
                     onClick={() => handleItemClick(item, index)}
                     onMouseEnter={() => handleItemHover(index)}
+                    onMouseLeave={handleItemLeave}
                     whileHover={{
-                      scale: 1.06,
-                      y: -2,
+                      scale: 1.02,
+                      y: -1,
                       transition: {
-                        type: "spring",
-                        stiffness: 500,
-                        damping: 35,
-                        mass: 0.5
+                        duration: 0.3,
+                        ease: [0.22, 1, 0.36, 1]
                       }
                     }}
                     whileTap={{
-                      scale: 0.98,
+                      scale: 0.99,
                       transition: {
-                        type: "spring",
-                        stiffness: 500,
-                        damping: 25,
-                        mass: 0.5
+                        duration: 0.15,
+                        ease: [0.22, 1, 0.36, 1]
                       }
                     }}
                     aria-label={`Navigate to ${item.label}`}
@@ -491,51 +511,38 @@ export function InteractiveDotMenu() {
                         initial="closed"
                         animate="open"
                         exit="closed"
-                        className="absolute top-full mt-4 left-1/2 -translate-x-1/2 bg-black/30 backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-2xl min-w-[200px]"
+                        className="absolute top-full mt-4 left-1/2 -translate-x-1/2 bg-black/30 backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-2xl min-w-[280px] max-w-[320px]"
                         style={{
                           transformOrigin: "top center",
                         }}
+                        onMouseEnter={() => setShowSubmenu(true)}
+                        onMouseLeave={handleItemLeave}
                       >
                         {item.subItems.map((subItem, subIndex) => (
-                          <motion.button
+                          <motion.div
                             key={subItem.id}
-                            onClick={() => {
-                              router.push(subItem.href)
-                              setIsOpen(false)
-                              setShowSubmenu(false)
-                            }}
-                            className="block w-full text-left px-4 py-2 text-white/80 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+                            className="px-4 py-3 text-white/70"
                             style={{
-                              fontSize: '14px',
-                              lineHeight: '18.2px',
+                              fontSize: '13px',
+                              lineHeight: '18px',
                               fontWeight: 400,
-                              color: 'rgba(255,255,255,0.8)'
+                              color: 'rgba(255,255,255,0.7)'
                             }}
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: subIndex * 0.05 }}
-                            whileHover={{
-                              x: 3,
-                              backgroundColor: 'rgba(255,255,255,0.08)',
-                              transition: {
-                                type: "spring",
-                                stiffness: 400,
-                                damping: 30,
-                                mass: 0.5
+                            initial={{ opacity: 0, filter: "blur(6px)" }}
+                            animate={{ opacity: 1, filter: "blur(0px)" }}
+                            transition={{
+                              delay: subIndex * 0.08,
+                              duration: 0.5,
+                              ease: [0.22, 1, 0.36, 1],
+                              filter: {
+                                delay: subIndex * 0.08,
+                                duration: 0.6,
+                                ease: [0.22, 1, 0.36, 1]
                               }
                             }}
-                            whileTap={{
-                              scale: 0.98,
-                              transition: {
-                                type: "spring",
-                                stiffness: 500,
-                                damping: 25
-                              }
-                            }}
-                            role="menuitem"
                           >
-                            {subItem.label}
-                          </motion.button>
+                            {subItem.description}
+                          </motion.div>
                         ))}
                       </motion.div>
                     )}
@@ -557,22 +564,30 @@ export function InteractiveDotMenu() {
         aria-label={isOpen ? "Close menu" : "Open menu"}
         aria-expanded={isOpen}
         role="button"
+        initial={{ opacity: 0, scale: 0.8, filter: "blur(4px)" }}
+        animate={{ opacity: introComplete ? 1 : 0, scale: introComplete ? 1 : 0.8, filter: introComplete ? "blur(0px)" : "blur(4px)" }}
+        transition={{
+          duration: 0.6,
+          delay: 2.7,
+          ease: [0.22, 1, 0.36, 1],
+          filter: {
+            duration: 0.7,
+            delay: 2.7,
+            ease: [0.22, 1, 0.36, 1]
+          }
+        }}
         whileHover={{
-          scale: 1.08,
+          scale: 1.04,
           transition: {
-            type: "spring",
-            stiffness: 400,
-            damping: 30,
-            mass: 0.6
+            duration: 0.3,
+            ease: [0.22, 1, 0.36, 1]
           }
         }}
         whileTap={{
-          scale: 0.96,
+          scale: 0.97,
           transition: {
-            type: "spring",
-            stiffness: 500,
-            damping: 25,
-            mass: 0.5
+            duration: 0.15,
+            ease: [0.22, 1, 0.36, 1]
           }
         }}
       >
@@ -584,10 +599,8 @@ export function InteractiveDotMenu() {
             opacity: isHovered || isOpen ? 1 : 0,
           }}
           transition={{
-            type: "spring",
-            stiffness: 400,
-            damping: 32,
-            mass: 0.6
+            duration: 0.35,
+            ease: [0.22, 1, 0.36, 1]
           }}
         />
 
@@ -613,10 +626,17 @@ export function InteractiveDotMenu() {
         <AnimatePresence>
           {isHovered && !isOpen && (
             <motion.span
-              initial={{ opacity: 0, x: 10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 10 }}
-              transition={{ type: "spring", damping: 25, stiffness: 400 }}
+              initial={{ opacity: 0, x: 10, filter: "blur(4px)" }}
+              animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
+              exit={{ opacity: 0, x: 10, filter: "blur(4px)" }}
+              transition={{
+                duration: 0.3,
+                ease: [0.22, 1, 0.36, 1],
+                filter: {
+                  duration: 0.4,
+                  ease: [0.22, 1, 0.36, 1]
+                }
+              }}
               className="absolute right-full mr-4 text-sm text-white whitespace-nowrap bg-black/30 backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/10"
             >
               menu
